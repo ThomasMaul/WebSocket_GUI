@@ -1,34 +1,73 @@
 Class constructor()
-	This:C1470.verbosity:=0
+	This:C1470.verbosity:=True:C214
+	If (This:C1470.verbosity)
+		This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("write")
+	End if 
 	//This.jsonUpdateDocumentSize:=2000
 	//This.jsonInitialDocumentSize:=8000
 	This:C1470.sliderContinuous:=False:C215
 	This:C1470.controls:=New collection:C1472
 	This:C1470.controlTypes:=This:C1470.Constants()
-	This:C1470.ws:=Null:C1517  // WS_Server class
+	
+	This:C1470.ws:=Null:C1517
+	This:C1470.clientcounter:=0
+	This:C1470.clients:=New collection:C1472
+	This:C1470.ui_title:="4DUI"
+	
+	
 	
 Function begin($title : Text)
-	$codefehltnocht:="nicht fertig"
+	If ($title#"")
+		This:C1470.ui_title:=$title
+	End if 
+	var $handler : cs:C1710.WSSHandler
+	$handler:=cs:C1710.WSSHandler.new(This:C1470)
+	This:C1470.ws:=4D:C1709.WebSocketServer.new($handler; New object:C1471("path"; "/ws"))
+	If (This:C1470.verbosity)
+		This:C1470.log.writeLine("UI Initialized")
+	End if 
+	
+Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)->$ID : Integer
+	This:C1470.RemoveToBeDeletedControls()
+	If ($event="open")
+		This:C1470.clientcounter:=This:C1470.clientcounter+1
+		$ID:=This:C1470.clientcounter
+	End if 
+	
+Function NotifyClients($state : Integer)
+	//TODO:fehlt noch
+	ALERT:C41("fehlt")
 	
 Function addControl($type : Integer; $label : Text; $callback : 4D:C1709.Function; \
 $userdata : Object; $value : Text; $color : Integer; $parentControl : Integer; $visible : Boolean)->$controlid : Integer
 	
 	$control:=cs:C1710.UI_Control.new(This:C1470.controls; Copy parameters:C1790)
+	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	$controlid:=$control.id
 	
 Function removeControl($controlid : Integer; $forcereload : Boolean)->$bool : Boolean
 	$index:=This:C1470.controls.findIndex(Formula:C1597($1.value.id=$2); $controlid)
 	If ($index>=0)
-		This:C1470.controls.remove($index)
+		//This.controls.remove($index)
+		This:C1470.controls[$index].DeleteControl()
 		If ($forcereload)
-			This:C1470.jsonReload()
+			//MARK:originally jsonReload, using .second??
+			This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 		Else 
-			This:C1470.jsonDom(0)  //resend to all
+			This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 		End if 
 		return True:C214
 	Else 
 		return False:C215
 	End if 
+	
+Function RemoveToBeDeletedControls()
+	var $control : cs:C1710.UI_Control
+	For ($index; This:C1470.controls.length-1; 0; -1)
+		If (This:C1470.controls[$index].ToBeDeleted())
+			This:C1470.controls.remove($index)
+		End if 
+	End for 
 	
 	// all the possible controls ...
 Function label($label : Text; $color : Integer; $value : Text)->$id : Integer
@@ -97,35 +136,14 @@ Function updateControl($thecontrol : Variant; $clientId : Integer)
 		: (Value type:C1509($thecontrol)=Is object:K8:27)
 			$control:=$thecontrol
 		Else 
+			If (This:C1470.verbosity)
+				This:C1470.log.writeLine("Error: Update Control: There is no control with ID: "+String:C10($clientId))
+			End if 
 			return 
 	End case 
 	
-	If (($control=Null:C1517) | (This:C1470.ws=Null:C1517))
-		return 
-	End if 
-	
-	$root:=New object:C1471
-	$root.type:=$control.type
-	$root.value:=String:C10($control.value)
-	$root.id:=$control.id
-	$root.visible:=$control.visible
-	$root.color:=Num:C11($control.color)
-	$root.enabled:=$control.enabled
-	If ($control.panelStyle#"")
-		$root.panelStyle:=$control.panelStyle
-	End if 
-	If ($control.elementStyle#"")
-		$root.elementStyle:=$control.elementStyle
-	End if 
-	If ($control.inputType#"")
-		$root.inputType:=$control.inputType
-	End if 
-	
-	If ($clientId<0)
-		//TODO: send to all clients
-	Else 
-		//TODO: send to one client
-	End if 
+	$control.HasBeenUpdated()
+	This:C1470.NotifyClients(This:C1470.controlTypes.UpdateNeeded)
 	
 	
 Function setPanelStyle($id : Integer; $style : Text; $clientid : Integer)
@@ -185,6 +203,9 @@ Function updateControlValue($thecontrol : Variant; $value : Text; $clientId : In
 		: (Value type:C1509($thecontrol)=Is object:K8:27)
 			$control:=$thecontrol
 		Else 
+			If (This:C1470.verbosity)
+				This:C1470.log.writeLine("Error: updateControlValue Control: There is no control with ID: "+String:C10($clientId))
+			End if 
 			return 
 	End case 
 	If ($control#Null:C1517)
@@ -233,10 +254,43 @@ Function updateGauge($id : Integer; $value : Integer; $clientid : Integer)
 Function updateTime($id : Integer; $clientid : Integer)
 	This:C1470.updateControl($id; $clientid)
 	
+Function clearGraph($id : Integer; $clientid : Integer)
+	$control:=This:C1470.getControl($controlid)
 	
-Function jsonReload()
+	If (($control=Null:C1517) | (This:C1470.ws=Null:C1517))
+		return 
+	End if 
 	
-Function jsonDom($id : Integer)
+	$root:=New object:C1471
+	$root.type:=This:C1470.controlTypes.Graph+This:C1470.controlTypes.UpdateOffset
+	$root.value:=0
+	$root.id:=$control.id
+	
+	This:C1470.SendJsonDocToWebSocket($root; $clientId)
+	
+	
+Function addGraphPoint($id : Integer; $value : Integer; $clientid : Integer)
+	$control:=This:C1470.getControl($controlid)
+	
+	If (($control=Null:C1517) | (This:C1470.ws=Null:C1517))
+		return 
+	End if 
+	
+	$root:=New object:C1471
+	$root.type:=This:C1470.controlTypes.GraphPoint
+	$root.value:=$value
+	$root.id:=$control.id
+	
+	This:C1470.SendJsonDocToWebSocket($root; $clientId)
+	
+	
+Function SendJsonDocToWebSocket($root : Object; $clientid : Integer)->$response : Boolean
+	$response:=False:C215
+	//TODO:missing
+	ALERT:C41("missing")
+	
+Function jsonDom($startidx : Integer; $client : Object)
+	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	
 	
 	
@@ -266,6 +320,7 @@ Function Constants()->$ControlTypes
 	$controlTypes.Time:=20
 	
 	$controlTypes.UpdateOffset:=100
+	
 	$controlTypes.UpdatePad:=101
 	$controlTypes.UpdatePadWithCenter:=102
 	$controlTypes.ButtonButton:=103
@@ -289,3 +344,9 @@ Function Constants()->$ControlTypes
 	$controlTypes.InitialGui:=200
 	$controlTypes.Reload:=201
 	$controlTypes.ExtendGUI:=210
+	
+	$controlTypes.Synchronized:=0
+	$controlTypes.UpdateNeeded:=1
+	$controlTypes.RebuildNeeded:=2
+	$controlTypes.ReloadNeeded:=3
+	

@@ -27,5 +27,30 @@ Function SendCallback($type : Integer)
 		End if 
 	End if 
 	
+Function DeleteControl()
+	//TODO: Missing
+	ALERT:C41("missing")
+	
 Function HasCallback()->$yes : Boolean
 	return (This:C1470.callback#Null:C1517)
+	
+Function HasBeenUpdated()
+	//TODO: Missing
+	ALERT:C41("missing")
+	
+Function ToBeDeleted()->$delete : Boolean
+	//TODO: Missing
+	ALERT:C41("missing")
+	
+Function IsUpdated()->$update : Boolean
+	//TODO: Missing
+	ALERT:C41("missing")
+	
+Function onWSEvent($cmd : Text; $value : Text)
+	//TODO: Missing
+	ALERT:C41("missing")
+	
+Function MarshalControl($item : Object; $InUpdateMode : Boolean)
+	//TODO: Missing
+	ALERT:C41("missing")
+	
