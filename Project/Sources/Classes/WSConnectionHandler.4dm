@@ -1,12 +1,16 @@
 Class constructor
 	This:C1470.UI_Id:=-1
+	This:C1470.WS_ID:=-1
+	This:C1470.wss:=Null:C1517
 	This:C1470.ws:=Null:C1517
+	This:C1470.ClientUpdateType:=0
 	
 Function onOpen($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	var $ui : cs:C1710.UI
-	This:C1470.ws:=$WS.wss
+	This:C1470.wss:=$WS.wss
 	$ui:=$WS.wss.handler.UI
 	This:C1470.UI_Id:=$ui.onWSEvent($WS.wss; $WS; "open"; $para)
+	This:C1470.WS_ID:=$WS.id
 	If (This:C1470.verbosity)
 		This:C1470.log.writeLine("WS Client Connect ID: "+String:C10(This:C1470.UI_Id))
 	End if 
@@ -72,19 +76,19 @@ Function UI_canSend()->$response : Boolean
 	
 Function UI_FillInHeader($json : Object)
 	var $ui : cs:C1710.UI
-	$ui:=This:C1470.ws.handler.UI
+	$ui:=This:C1470.wss.handler.UI
 	$json.type:=$ui.controlTypes.ExtendGUI
 	$json.sliderContinuous:=$ui.sliderContinuous
 	$json.startindex:=0
-	$json.totalcontrols:=This:C1470.ws.connections.length
+	$json.totalcontrols:=This:C1470.wss.connections.length
 	$json.controls:=New collection:C1472(New object:C1471("type"; $ui.controlTypes.Title; "label"; $ui.ui_title))
 	
 Function UI_IsSyncronized()->$return : Boolean
-	//TODO: woher Sync state bekommen?
+	return (This:C1470.ClientUpdateType=0)  //   Synchronized    = 0,
 	
 Function UI_SendClientNotification($type : Integer)->$return : Boolean
 	var $ui : cs:C1710.UI
-	$ui:=This:C1470.ws.handler.UI
+	$ui:=This:C1470.wss.handler.UI
 	
 	$json:=New object:C1471
 	This:C1470.UI_FillInHeader($json)
@@ -104,7 +108,8 @@ client will acknowledge receipt by requesting the next chunk.
 	
 Function UI_prepareJSONChunk($startindex : Integer; $json : Object; $InUpdateMode : Boolean)->$count : Integer
 	var $ui : cs:C1710.UI
-	$ui:=This:C1470.ws.handler.UI
+	$ui:=This:C1470.wss.handler.UI
+	var $control : cs:C1710.UI_Control
 	$elementcount:=0
 	$currentIndex:=0
 	$json:=New object:C1471("controls"; New collection:C1472())
@@ -133,7 +138,7 @@ Function UI_prepareJSONChunk($startindex : Integer; $json : Object; $InUpdateMod
 			continue
 		End if 
 		If ($InUpdateMode)
-			If (Not:C34($control->IsUpdated()))
+			If (Not:C34($control.IsUpdated()))
 				$currentindex+=1
 				continue
 			End if 
@@ -159,4 +164,64 @@ Function UI_prepareJSONChunk($startindex : Integer; $json : Object; $InUpdateMod
 	
 	return $elementcount
 	
+/*
+Convert & Transfer Arduino elements to JSON elements. This function sends a chunk of
+JSON describing the controls of the UI, starting from the control at index startidx.
+If startidx is 0 then a UI_INITIAL_GUI message will be sent, else a UI_EXTEND_GUI.
+Both message types contain a list of serialised UI elements. Only a portion of the UI
+will be sent in order to avoid websocket buffer overflows. The client will acknowledge
+receipt of a partial message by requesting the next chunk of UI.
+	
+The protocol is:
+SERVER: SendControlsToClient(0):
+    "UI_INITIAL_GUI: n serialised UI elements"
+CLIENT: controls.js:handleEvent()
+    "uiok:n"
+SERVER: SendControlsToClient(n):
+    "UI_EXTEND_GUI: n serialised UI elements"
+CLIENT: controls.js:handleEvent()
+    "uiok:2*n"
+etc.
+    Returns true if all controls have been sent (aka: Done)
+*/
+Function UI_SendControlsToClient($startidx : Integer; $TransferMode : Integer)->$response : Boolean
+	$response:=False:C215
+	var $ui : cs:C1710.UI
+	$ui:=This:C1470.wss.handler.UI
+	If ($startidx>=$ui.controls.length)
+		return True:C214
+	End if 
+	
+	$json:=New object:C1471
+	This:C1470.UI_FillInHeader($json)
+	$json.startindex:=$startidx
+	$json.totalcontrols:=65534
+	
+	If ($startidx=0)
+		$json.type:=($TransferMode=$ui.controlTypes.RebuildNeeded) ? $ui.controlTypes.InitialGui : $ui.controlTypes.ExtendGUI
+	End if 
+	If (This:C1470.UI_prepareJSONChunk($startidx; $json; $TransferMode=$ui.controlTypes.UpdateNeeded))
+		If (This:C1470.verbosity)
+			This:C1470.log.writeLine("SendControlsToClient: Sending Elements")
+			This:C1470.log.writeLine(JSON Stringify:C1217($json))
+		End if 
+		This:C1470.UI_SendJsonDocToWebSocket($json)
+	Else 
+		$response:=True:C214
+	End if 
+	
+Function UI_SendJsonDocToWebSocket($json : Object)->$response : Boolean
+	$response:=True:C214
+	var $ws : cs:C1710.WSConnectionHandler
+	For each ($ws_connection; This:C1470.wss.connections)
+		If ($ws_connection.id=This:C1470.WS_ID)
+			$ws_connection.send($json)
+		End if 
+	End for each 
+	
+	
+Function UI_SetState($value : Integer)
+	If (This:C1470.ClientUpdateType<$value)
+		This:C1470.ClientUpdateType:=$value
+	End if 
 	

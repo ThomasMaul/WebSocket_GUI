@@ -41,7 +41,7 @@ Function NotifyClients($state : Integer)
 Function addControl($type : Integer; $label : Text; $callback : 4D:C1709.Function; \
 $userdata : Object; $value : Text; $color : Integer; $parentControl : Integer; $visible : Boolean)->$controlid : Integer
 	
-	$control:=cs:C1710.UI_Control.new(This:C1470.controls; Copy parameters:C1790)
+	$control:=cs:C1710.UI_Control.new(This:C1470.controls; This:C1470.controlTypes; Copy parameters:C1790)
 	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	$controlid:=$control.id
 	
