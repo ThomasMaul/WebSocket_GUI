@@ -1,7 +1,7 @@
 Class constructor()
 	This:C1470.verbosity:=True:C214
 	If (This:C1470.verbosity)
-		This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("write")
+		This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("append")
 	End if 
 	//This.jsonUpdateDocumentSize:=2000
 	//This.jsonInitialDocumentSize:=8000
@@ -27,6 +27,13 @@ Function begin($title : Text)
 		This:C1470.log.writeLine("UI Initialized")
 	End if 
 	
+Function end()
+	If (This:C1470.verbosity)
+		This:C1470.log:=False:C215
+	End if 
+	This:C1470.ws.terminate()
+	
+	
 Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)->$ID : Integer
 	This:C1470.RemoveToBeDeletedControls()
 	If ($event="open")
@@ -35,13 +42,16 @@ Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)
 	End if 
 	
 Function NotifyClients($state : Integer)
-	//TODO:fehlt noch
-	ALERT:C41("fehlt")
+	var $client : cs:C1710.WSConnectionHandler
+	For each ($client; This:C1470.clients)
+		$client.UI_NotifyClient($state)
+	End for each 
 	
-Function addControl($type : Integer; $label : Text; $callback : 4D:C1709.Function; \
-$userdata : Object; $value : Text; $color : Integer; $parentControl : Integer; $visible : Boolean)->$controlid : Integer
+Function addControl($type : Integer; $label : Text; $value : Text; $color : Integer; $parentControl : Integer; \
+$callback : 4D:C1709.Function; $userdata : Object)->$controlid : Integer
 	
-	$control:=cs:C1710.UI_Control.new(This:C1470.controls; This:C1470.controlTypes; Copy parameters:C1790)
+	$control:=cs:C1710.UI_Control.new(This:C1470.controls; This:C1470; Copy parameters:C1790)
+	//$control:=cs.UI_Control.new(This.controls; This; $type; $label; $value; $Color)
 	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	$controlid:=$control.id
 	
@@ -286,8 +296,16 @@ Function addGraphPoint($id : Integer; $value : Integer; $clientid : Integer)
 	
 Function SendJsonDocToWebSocket($root : Object; $clientid : Integer)->$response : Boolean
 	$response:=False:C215
-	//TODO:missing
-	ALERT:C41("missing")
+	If ($clientid<0)
+		$theclients:=This:C1470.clients.query("WS_ID=:1"; $clientid)
+		If ($theclients.length>0)
+			$response:=$theclients[0].SendJsonDocToWebSocket($root)
+		End if 
+	Else 
+		For each ($client; This:C1470.clients)
+			$response:=$response | $client.SendJsonDocToWebSocket($root)
+		End for each 
+	End if 
 	
 Function jsonDom($startidx : Integer; $client : Object)
 	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
@@ -349,4 +367,28 @@ Function Constants()->$ControlTypes
 	$controlTypes.UpdateNeeded:=1
 	$controlTypes.RebuildNeeded:=2
 	$controlTypes.ReloadNeeded:=3
+	
+	// Values
+	$controlTypes.B_DOWN:=-1
+	$controlTypes.B_UP:=1
+	
+	$controlTypes.P_LEFT_DOWN:=-2
+	$controlTypes.P_LEFT_UP:=2
+	$controlTypes.P_RIGHT_DOWN:=-3
+	$controlTypes.P_RIGHT_UP:=3
+	$controlTypes.P_FOR_DOWN:=-4
+	$controlTypes.P_FOR_UP:=4
+	$controlTypes.P_BACK_DOWN:=-5
+	$controlTypes.P_BACK_UP:=5
+	$controlTypes.P_CENTER_DOWN:=-6
+	$controlTypes.P_CENTER_UP:=6
+	
+	$controlTypes.S_ACTIVE:=-7
+	$controlTypes.S_INACTIVE:=7
+	
+	$controlTypes.SL_VALUE:=8
+	$controlTypes.N_VALUE:=9
+	$controlTypes.T_VALUE:=10
+	$controlTypes.S_VALUE:=11
+	$controlTypes.TM_VALUE:=12
 	
