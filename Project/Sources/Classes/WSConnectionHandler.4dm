@@ -11,9 +11,10 @@ Function onOpen($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	$ui:=$WS.wss.handler.UI
 	This:C1470.UI_Id:=$ui.onWSEvent($WS.wss; $WS; "open"; $para)
 	This:C1470.WS_ID:=$WS.id
-	If (This:C1470.verbosity)
-		This:C1470.log.writeLine("WS Client Connect ID: "+String:C10(This:C1470.UI_Id))
+	If (Bool:C1537(This:C1470.wss.handler.UI.verbosity))
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS Client Connect ID: "+String:C10(This:C1470.UI_Id))
 	End if 
+	This:C1470.UI_NotifyClient(This:C1470.wss.handler.UI.controlTypes.RebuildNeeded)
 	
 	
 Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
@@ -21,23 +22,28 @@ Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	var $id : Integer
 	$msg:=String:C10($para.data)
 	$parts:=Split string:C1554($msg; ":")
-	If ($parts.length#3)
+	If ($parts.length<2)
 		return 
 	End if 
 	
 	$cmd:=$parts[0]
 	$value:=$parts[1]
-	$id:=Num:C11($parts[3])
+	If ($parts.length>2)
+		$id:=Num:C11($parts[2])
+	Else 
+		$id:=Num:C11($parts[1])
+	End if 
 	
-	If (This:C1470.verbosity)
-		This:C1470.log.writeLine("WS msg "+$msg)
-		This:C1470.log.writeLine("WS cmd "+$cmd)
-		This:C1470.log.writeLine("WS id "+String:C10($id))
-		This:C1470.log.writeLine("WS value "+$value)
+	If (This:C1470.wss.handler.UI.verbosity)
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS msg "+$msg)
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS cmd "+$cmd)
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS id "+String:C10($id))
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS value "+$value)
 	End if 
 	
 	If ($cmd="uiok")
-		This:C1470.UI_NotifyClient($id)
+		$id:=Num:C11($value)
+		This:C1470.UI_SendControlsToClient($id; This:C1470.wss.handler.UI.controlTypes.RebuildNeeded)
 		return 
 	End if 
 	If ($cmd="uiuok")
@@ -48,8 +54,8 @@ Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	var $control : cs:C1710.UI_Control
 	$control:=$ui.getControl($id)
 	If ($control=Null:C1517)
-		If (This:C1470.verbosity)
-			This:C1470.log.writeLine("Error: WS Event: There is no control with ID: "+String:C10($Id))
+		If ($ui.verbosity)
+			$ui.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: WS Event: There is no control with ID: "+String:C10($Id))
 		End if 
 		return 
 	Else 
@@ -58,13 +64,13 @@ Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	
 Function onTerminate($WS : 4D:C1709.WebSocketConnection; $para : Object)
 	var $ui : cs:C1710.UI
-	$ui:=$WS.wss.handler.UI
-	$ui.onWSEvent($WS.wss; $WS; "terminate"; $para)
+	$ui:=This:C1470.wss.handler.UI
+	$ui.onWSEvent($WS.wss; This:C1470.wss; "terminate"; $para)
 	This:C1470.UI_Id:=-1
 	
 Function onError($WS : 4D:C1709.WebSocketConnection; $para : Object)
-	If (This:C1470.verbosity)
-		This:C1470.log.writeLine("Error: WS Connection Error "+String:C10($para.status.HTTPError))
+	If (This:C1470.wss.handler.UI.verbosity)
+		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: WS Connection Error "+String:C10($para.status.HTTPError))
 	End if 
 	
 	/// ######## functions from ESPUIclient.cpp
@@ -92,12 +98,18 @@ Function UI_SendClientNotification($type : Integer)->$return : Boolean
 	
 	$json:=New object:C1471
 	This:C1470.UI_FillInHeader($json)
+	
 	If ($type=$ui.controlTypes.ReloadNeeded)
 		$json.type:=$ui.controlTypes.Reload
+	End if 
+	If ($type=$ui.controlTypes.RebuildNeeded)
+		$json.type:=$ui.controlTypes.ExtendGUI
 	End if 
 	return This:C1470.UI_SendJsonDocToWebSocket($json)
 	
 Function UI_NotifyClient($type : Integer)->$return : Boolean
+	This:C1470.UI_SetState($type)
+	This:C1470.ClientUpdateType:=0  //$controlTypes.Synchronized
 	return This:C1470.UI_SendClientNotification($type)
 	
 /*
@@ -112,7 +124,9 @@ Function UI_prepareJSONChunk($startindex : Integer; $json : Object; $InUpdateMod
 	var $control : cs:C1710.UI_Control
 	$elementcount:=0
 	$currentIndex:=0
-	$json:=New object:C1471("controls"; New collection:C1472())
+	If ($json.controls=Null:C1517)
+		$json.controls:=New collection:C1472()
+	End if 
 	
 	// wir müssen startindex ermitteln, ohne active, nicht mit for each!!!!
 	While (($startindex>$currentindex) && ($currentindex<$ui.controls.length))
@@ -200,11 +214,11 @@ Function UI_SendControlsToClient($startidx : Integer; $TransferMode : Integer)->
 	If ($startidx=0)
 		$json.type:=($TransferMode=$ui.controlTypes.RebuildNeeded) ? $ui.controlTypes.InitialGui : $ui.controlTypes.ExtendGUI
 	End if 
-	If (This:C1470.UI_prepareJSONChunk($startidx; $json; $TransferMode=$ui.controlTypes.UpdateNeeded))
-		If (This:C1470.verbosity)
-			This:C1470.log.writeLine("SendControlsToClient: Sending Elements")
-			This:C1470.log.writeLine(JSON Stringify:C1217($json))
-		End if 
+	If (This:C1470.UI_prepareJSONChunk($startidx; $json; ($TransferMode=$ui.controlTypes.UpdateNeeded))>0)
+		//If (This.wss.handler.UI.verbosity)
+		//This.wss.handler.UI.log.writeLine(Timestamp+Char(9)+"SendControlsToClient: Sending Elements")
+		//This.wss.handler.UI.log.writeLine(Timestamp+Char(9)+JSON Stringify($json))
+		//End if 
 		This:C1470.UI_SendJsonDocToWebSocket($json)
 	Else 
 		$response:=True:C214
@@ -213,9 +227,12 @@ Function UI_SendControlsToClient($startidx : Integer; $TransferMode : Integer)->
 Function UI_SendJsonDocToWebSocket($json : Object)->$response : Boolean
 	$response:=True:C214
 	var $ws : cs:C1710.WSConnectionHandler
+	//If (This.wss.handler.UI.verbosity)
+	//This.wss.handler.UI.log.writeLine(Timestamp+Char(9)+"Send json "+JSON Stringify($json))
+	//End if 
 	For each ($ws_connection; This:C1470.wss.connections)
 		If ($ws_connection.id=This:C1470.WS_ID)
-			$ws_connection.send($json)
+			$ws_connection.send(JSON Stringify:C1217($json))
 		End if 
 	End for each 
 	

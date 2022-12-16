@@ -8,7 +8,7 @@ $value : Text; $color : Integer; $parentControl : Integer; $callback : 4D:C1709.
 	This:C1470.value:=$value
 	This:C1470.color:=$color  // RGB text?
 	This:C1470.parentControl:=$parentControl
-	//This.visible:=$visible
+	This:C1470.visible:=True:C214
 	This:C1470.wide:=False:C215
 	This:C1470.vertical:=False:C215
 	This:C1470.enabled:=True:C214
@@ -18,12 +18,16 @@ $value : Text; $color : Integer; $parentControl : Integer; $callback : 4D:C1709.
 	This:C1470.ControlSyncState:=0
 	This:C1470.UI:=$ui
 	This:C1470.controlTypes:=This:C1470.UI.controlTypes
-	$control.col.push(This:C1470)
+	$control_col.push(This:C1470)
 	
 	
 Function SendCallback($type : Integer)
 	If (This:C1470.callback#Null:C1517)
-		This:C1470.callback.call()
+		If (This:C1470.user#Null:C1517)
+			This:C1470.callback.call(Null:C1517; This:C1470.id; $Type; This:C1470.user)
+		Else 
+			This:C1470.callback.call(Null:C1517; This:C1470.id; $Type)
+		End if 
 	End if 
 	
 Function DeleteControl()
@@ -90,9 +94,10 @@ Function MarshalControl($item : Object; $InUpdateMode : Boolean)
 	End if 
 	
 Function onWSEvent($cmd : Text; $data : Text)
+	//This.UI.log.writeLine(Timestamp+Char(9)+"debug: ID: "+String(This.id)+" value "+$data)
 	If (Not:C34(This:C1470.HasCallback()))
 		If (This:C1470.verbosity)
-			This:C1470.log.writeLine("Control::onWsEvent:No callback found for ID  "+String:C10(This:C1470.id))
+			This:C1470.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"Control::onWsEvent:No callback found for ID  "+String:C10(This:C1470.id))
 		End if 
 		return 
 	End if 
@@ -148,7 +153,7 @@ Function onWSEvent($cmd : Text; $data : Text)
 			
 		Else 
 			If (This:C1470.verbosity)
-				This:C1470.log.writeLine("Control::onWsEvent:Malformed message from the websocket: "+String:C10($cmd))
+				This:C1470.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"Control::onWsEvent:Malformed message from the websocket: "+String:C10($cmd))
 			End if 
 			
 	End case 

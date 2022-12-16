@@ -24,12 +24,12 @@ Function begin($title : Text)
 	$handler:=cs:C1710.WSSHandler.new(This:C1470)
 	This:C1470.ws:=4D:C1709.WebSocketServer.new($handler; New object:C1471("path"; "/ws"))
 	If (This:C1470.verbosity)
-		This:C1470.log.writeLine("UI Initialized")
+		This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"UI Initialized")
 	End if 
 	
 Function end()
 	If (This:C1470.verbosity)
-		This:C1470.log:=False:C215
+		This:C1470.log:=New object:C1471
 	End if 
 	This:C1470.ws.terminate()
 	
@@ -50,8 +50,8 @@ Function NotifyClients($state : Integer)
 Function addControl($type : Integer; $label : Text; $value : Text; $color : Integer; $parentControl : Integer; \
 $callback : 4D:C1709.Function; $userdata : Object)->$controlid : Integer
 	
-	$control:=cs:C1710.UI_Control.new(This:C1470.controls; This:C1470; Copy parameters:C1790)
-	//$control:=cs.UI_Control.new(This.controls; This; $type; $label; $value; $Color)
+	//$control:=cs.UI_Control.new(This.controls; This; Copy parameters)
+	$control:=cs:C1710.UI_Control.new(This:C1470.controls; This:C1470; $type; $label; $value; $Color; $parentControl; $callback; $userdata)
 	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	$controlid:=$control.id
 	
@@ -128,11 +128,11 @@ Function text($label : Text; $callback : 4D:C1709.Function; $color : Integer; $v
 	// end control definition
 	
 Function getControl($id : Integer)->$control : cs:C1710.UI_Control
-	This:C1470.controls.query("id=:1"; $id)
-	If (This:C1470.controls.length=0)
+	$subcontrols:=This:C1470.controls.query("id=:1"; $id)
+	If ($subcontrols.length=0)
 		return Null:C1517
 	Else 
-		return This:C1470.controls[0]
+		return $subcontrols[0]
 	End if 
 	
 Function updateControl($thecontrol : Variant; $clientId : Integer)
@@ -147,7 +147,7 @@ Function updateControl($thecontrol : Variant; $clientId : Integer)
 			$control:=$thecontrol
 		Else 
 			If (This:C1470.verbosity)
-				This:C1470.log.writeLine("Error: Update Control: There is no control with ID: "+String:C10($clientId))
+				This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: Update Control: There is no control with ID: "+String:C10($clientId))
 			End if 
 			return 
 	End case 
@@ -214,7 +214,7 @@ Function updateControlValue($thecontrol : Variant; $value : Text; $clientId : In
 			$control:=$thecontrol
 		Else 
 			If (This:C1470.verbosity)
-				This:C1470.log.writeLine("Error: updateControlValue Control: There is no control with ID: "+String:C10($clientId))
+				This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: updateControlValue Control: There is no control with ID: "+String:C10($clientId))
 			End if 
 			return 
 	End case 
