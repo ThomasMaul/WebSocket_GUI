@@ -6,3 +6,7 @@ Else
 	$data:=""
 End if 
 gui.log.writeLine("WS - Control: "+String:C10($control)+", type: "+String:C10($type)+" "+$data)
+
+If ($control=3)
+	gui.updateVisibility(2; $type<0)
+End if 

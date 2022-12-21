@@ -1,7 +1,11 @@
-Class constructor()
+Class constructor($log : 4D:C1709.FileHandle)
 	This:C1470.verbosity:=True:C214
 	If (This:C1470.verbosity)
-		This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("append")
+		If (OB Is empty:C1297($log))
+			This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("append")
+		Else 
+			This:C1470.log:=$log
+		End if 
 	End if 
 	//This.jsonUpdateDocumentSize:=2000
 	//This.jsonInitialDocumentSize:=8000
@@ -28,9 +32,6 @@ Function begin($title : Text)
 	End if 
 	
 Function end()
-	If (This:C1470.verbosity)
-		This:C1470.log:=New object:C1471
-	End if 
 	This:C1470.ws.terminate()
 	
 	
@@ -39,12 +40,14 @@ Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)
 	If ($event="open")
 		This:C1470.clientcounter:=This:C1470.clientcounter+1
 		$ID:=This:C1470.clientcounter
+		
 	End if 
 	
 Function NotifyClients($state : Integer)
 	var $client : cs:C1710.WSConnectionHandler
-	For each ($client; This:C1470.clients)
-		$client.UI_NotifyClient($state)
+	//For each ($client; This.clients)
+	For each ($client; This:C1470.ws.connections)
+		$client.handler.UI_NotifyClient($state)
 	End for each 
 	
 Function addControl($type : Integer; $label : Text; $value : Text; $color : Integer; $parentControl : Integer; \
@@ -147,7 +150,7 @@ Function updateControl($thecontrol : Variant; $clientId : Integer)
 			$control:=$thecontrol
 		Else 
 			If (This:C1470.verbosity)
-				This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: Update Control: There is no control with ID: "+String:C10($clientId))
+				This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"Error: Update Control: There is no control with ID: "+String:C10($controlid))
 			End if 
 			return 
 	End case 
