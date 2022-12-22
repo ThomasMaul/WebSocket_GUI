@@ -1,12 +1,4 @@
 //%attributes = {}
-#DECLARE($control : Integer; $type : Integer; $userdata : Object)
-If ($userdata#Null:C1517)
-	$data:=JSON Stringify:C1217($userdata)
-Else 
-	$data:=""
-End if 
-gui.log.writeLine("WS - Control: "+String:C10($control)+", type: "+String:C10($type)+" "+$data)
+#DECLARE($control : Integer; $type : Integer; $value : Text; $clientID : Integer; $userdata : Object)
 
-If ($control=3)
-	gui.updateVisibility(2; $type<0)
-End if 
+ALERT:C41("Control: "+String:C10($control)+" type: "+String:C10($type)+" value: "+$value)

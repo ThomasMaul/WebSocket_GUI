@@ -1,5 +1,5 @@
 Class constructor($log : 4D:C1709.FileHandle)
-	This:C1470.verbosity:=True:C214
+	This:C1470.verbosity:=False:C215
 	If (This:C1470.verbosity)
 		If (OB Is empty:C1297($log))
 			This:C1470.log:=Folder:C1567(fk logs folder:K87:17).file("UIClasslog.txt").open("append")
@@ -24,8 +24,8 @@ Function begin($title : Text)
 	If ($title#"")
 		This:C1470.ui_title:=$title
 	End if 
-	var $handler : cs:C1710.WSSHandler
-	$handler:=cs:C1710.WSSHandler.new(This:C1470)
+	var $handler : cs:C1710.UI_WSSHandler
+	$handler:=cs:C1710.UI_WSSHandler.new(This:C1470)
 	This:C1470.ws:=4D:C1709.WebSocketServer.new($handler; New object:C1471("path"; "/ws"))
 	If (This:C1470.verbosity)
 		This:C1470.log.writeLine(Timestamp:C1445+Char:C90(9)+"UI Initialized")
@@ -43,12 +43,30 @@ Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)
 		
 	End if 
 	
-Function NotifyClients($state : Integer)
-	var $client : cs:C1710.WSConnectionHandler
-	//For each ($client; This.clients)
-	For each ($client; This:C1470.ws.connections)
-		$client.handler.UI_NotifyClient($state)
-	End for each 
+Function NotifyClients($state : Integer; $clientid : Integer)
+	// positive client id = only this one. Negative client ID, all except that one, 0 = all
+	var $client : cs:C1710.UI_WSConnectionHandler
+	If (This:C1470.ws#Null:C1517)
+		For each ($client; This:C1470.ws.connections)
+			$run:=False:C215
+			$theclientID:=($client.id#0) ? $client.id : 9999
+			Case of 
+				: ($clientid=0)
+					$run:=True:C214
+				: ($clientid<0)
+					If ($theclientID#Abs:C99($clientid))
+						$run:=True:C214
+					End if 
+				Else 
+					If ($theclientID=$clientid)
+						$run:=True:C214
+					End if 
+			End case 
+			If ($run)
+				$client.handler.UI_NotifyClient($state)
+			End if 
+		End for each 
+	End if 
 	
 Function addControl($type : Integer; $label : Text; $value : Text; $color : Integer; $parentControl : Integer; \
 $callback : 4D:C1709.Function; $userdata : Object)->$controlid : Integer
@@ -89,8 +107,8 @@ Function label($label : Text; $color : Integer; $value : Text)->$id : Integer
 Function graph($label : Text; $color : Integer)->$id : Integer
 	return This:C1470.addControl(This:C1470.controlTypes.Graph; $label; ""; $color)
 	
-Function slider($label : Text; $callback : 4D:C1709.Function; $color : Integer; $value : Text; $min : Integer; $max : Integer; $userData : Object)->$id : Integer
-	$id:=This:C1470.addControl(This:C1470.controlTypes.Slider; $label; $value; $color; -1; $callback; $userData)
+Function slider($label : Text; $callback : 4D:C1709.Function; $color : Integer; $value : Integer; $min : Integer; $max : Integer; $userData : Object)->$id : Integer
+	$id:=This:C1470.addControl(This:C1470.controlTypes.Slider; $label; String:C10($value); $color; -1; $callback; $userData)
 	$id2:=This:C1470.addControl(This:C1470.controlTypes.Min; $label; String:C10($Min); 0x00FF; $Id)
 	$id2:=This:C1470.addControl(This:C1470.controlTypes.Max; $label; String:C10($max); 0x00FF; $Id)
 	return $id
@@ -156,7 +174,7 @@ Function updateControl($thecontrol : Variant; $clientId : Integer)
 	End case 
 	
 	$control.HasBeenUpdated()
-	This:C1470.NotifyClients(This:C1470.controlTypes.UpdateNeeded)
+	This:C1470.NotifyClients(This:C1470.controlTypes.UpdateNeeded; $clientId)
 	
 	
 Function setPanelStyle($id : Integer; $style : Text; $clientid : Integer)
@@ -282,7 +300,7 @@ Function clearGraph($id : Integer; $clientid : Integer)
 	This:C1470.SendJsonDocToWebSocket($root; $clientId)
 	
 	
-Function addGraphPoint($id : Integer; $value : Integer; $clientid : Integer)
+Function addGraphPoint($controlid : Integer; $value : Integer; $clientid : Integer)
 	$control:=This:C1470.getControl($controlid)
 	
 	If (($control=Null:C1517) | (This:C1470.ws=Null:C1517))
@@ -300,13 +318,13 @@ Function addGraphPoint($id : Integer; $value : Integer; $clientid : Integer)
 Function SendJsonDocToWebSocket($root : Object; $clientid : Integer)->$response : Boolean
 	$response:=False:C215
 	If ($clientid<0)
-		$theclients:=This:C1470.clients.query("WS_ID=:1"; $clientid)
+		$theclients:=This:C1470.ws.connections.query("id=:1"; Abs:C99($clientid))
 		If ($theclients.length>0)
-			$response:=$theclients[0].SendJsonDocToWebSocket($root)
+			$response:=$theclients[0].handler.UI_SendJsonDocToWebSocket($root)
 		End if 
 	Else 
-		For each ($client; This:C1470.clients)
-			$response:=$response | $client.SendJsonDocToWebSocket($root)
+		For each ($client; This:C1470.ws.connections)
+			$response:=$response | $client.handler.UI_SendJsonDocToWebSocket($root)
 		End for each 
 	End if 
 	
@@ -394,4 +412,14 @@ Function Constants()->$ControlTypes
 	$controlTypes.T_VALUE:=10
 	$controlTypes.S_VALUE:=11
 	$controlTypes.TM_VALUE:=12
+	
+	$ControlTypes.Turquoise:=0
+	$ControlTypes.Emerald:=1
+	$ControlTypes.Peterriver:=2
+	$ControlTypes.Wetasphalt:=3
+	$ControlTypes.Sunflower:=4
+	$ControlTypes.Carrot:=5
+	$ControlTypes.Alizarin:=6
+	$ControlTypes.Dark:=7
+	$ControlTypes.None:=0x00FF
 	

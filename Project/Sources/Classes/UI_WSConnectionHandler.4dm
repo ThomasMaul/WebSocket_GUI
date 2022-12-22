@@ -34,6 +34,12 @@ Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
 		$id:=Num:C11($parts[1])
 	End if 
 	
+	If ($cmd="tvalue")  // special for text, a text could contain :
+		$id:=Num:C11($parts[$parts.length-1])
+		$copyparts:=$parts.slice(1; $parts.length-1)
+		$value:=$copyparts.join(":")
+	End if 
+	
 	If (This:C1470.wss.handler.UI.verbosity)
 		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS msg "+$msg)
 		This:C1470.wss.handler.UI.log.writeLine(Timestamp:C1445+Char:C90(9)+"WS cmd "+$cmd)
@@ -59,7 +65,8 @@ Function onMessage($WS : 4D:C1709.WebSocketConnection; $para : Object)
 		End if 
 		return 
 	Else 
-		$control.onWSEvent($cmd; $value)
+		$id:=(This:C1470.WS_ID#0) ? This:C1470.WS_ID : 9999
+		$control.onWSEvent($cmd; $value; $id)
 	End if 
 	
 Function onTerminate($WS : 4D:C1709.WebSocketConnection; $para : Object)
@@ -163,7 +170,7 @@ Function UI_prepareJSONChunk($startindex : Integer; $json : Object; $InUpdateMod
 		$control.MarshalControl($item; $InUpdateMode)
 		$json.controls.push($item)
 		$text:=JSON Stringify:C1217($json)
-		If (Length:C16($text)>2000)  // overflow, chunk
+		If (Length:C16($text)>8000)  // overflow, chunk
 			If ($elementcount=1)  // first element?
 				// just send it
 			Else 
@@ -226,7 +233,7 @@ Function UI_SendControlsToClient($startidx : Integer; $TransferMode : Integer)->
 	
 Function UI_SendJsonDocToWebSocket($json : Object)->$response : Boolean
 	$response:=True:C214
-	var $ws : cs:C1710.WSConnectionHandler
+	var $ws : cs:C1710.UI_WSConnectionHandler
 	//If (This.wss.handler.UI.verbosity)
 	//This.wss.handler.UI.log.writeLine(Timestamp+Char(9)+"Send json "+JSON Stringify($json))
 	//End if 
