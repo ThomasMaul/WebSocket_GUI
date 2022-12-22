@@ -6,8 +6,8 @@ Case of
 	: ($job="simple")
 		
 		gui:=cs:C1710.UI.new()
-		$id1:=gui.button("Push Button"; Formula:C1597(mycallback))
-		$id4:=gui.number("umsatz"; Formula:C1597(mycallback); gui.controlTypes.Sunflower; 50; 1; 100)
+		$id1:=gui.button("Push Button"; Formula:C1597(callback_simple))
+		$id4:=gui.number("A number"; Formula:C1597(callback_simple); gui.controlTypes.Sunflower; 50; 1; 100)
 		gui.begin("very simple UI")
 		
 	: ($job="init")
@@ -23,9 +23,9 @@ Case of
 		// we could also open our own log file and pass a 4d.FileHandle
 		gui.sliderContinuous:=True:C214
 		$id1:=gui.button("Push Button"; Formula:C1597(mycallback))
-		$id2:=gui.button("Noch ein Button"; Formula:C1597(mycallback); gui.controlTypes.Emerald)
+		$id2:=gui.button("Another Button"; Formula:C1597(mycallback); gui.controlTypes.Emerald)
 		$id3:=gui.switcher("Switch"; Formula:C1597(mycallback))
-		$id4:=gui.number("umsatz"; Formula:C1597(mycallback); gui.controlTypes.Sunflower; 50; 1; 100)
+		$id4:=gui.number("number"; Formula:C1597(mycallback); gui.controlTypes.Sunflower; 50; 1; 100)
 		$id7:=gui.text("text"; Formula:C1597(mycallback); gui.controlTypes.Sunflower; "hallo")
 		gui.addControl(gui.controlTypes.Max; ""; "32"; gui.controlTypes.None; $id7)
 		
@@ -81,8 +81,8 @@ Case of
 		$id3:=gui.addControl(gui.controlTypes.Switcher; "Switch"; ""; gui.controlTypes.Emerald; $tab1; Formula:C1597(mycallback_generic); New object:C1471("job"; "hide"; "control"; $id2))
 		gui.setPanelStyle($id3; "background-color: blue;")
 		
-		//$id4:=gui.number("umsatz"; Formula(mycallback); gui.controlTypes.Sunflower; 50; 1; 100)
-		$id4:=gui.addControl(gui.controlTypes.Number; "umsatz"; "50"; gui.controlTypes.Sunflower; $tab1; Formula:C1597(mycallback_generic); New object:C1471("job"; "number"))
+		//$id4:=gui.number("number"; Formula(mycallback); gui.controlTypes.Sunflower; 50; 1; 100)
+		$id4:=gui.addControl(gui.controlTypes.Number; "number"; "50"; gui.controlTypes.Sunflower; $tab1; Formula:C1597(mycallback_generic); New object:C1471("job"; "number"))
 		gui.addControl(gui.controlTypes.Max; ""; "100"; gui.controlTypes.None; $id4)
 		gui.addControl(gui.controlTypes.Min; ""; "1"; gui.controlTypes.None; $id4)
 		//$id7:=gui.text("text"; Formula(mycallback); gui.controlTypes.Sunflower; "hallo")

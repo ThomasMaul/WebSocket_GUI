@@ -5,7 +5,6 @@ If ($userdata#Null:C1517)
 Else 
 	$data:=""
 End if 
-gui.log.writeLine("WS - Control: "+String:C10($control)+", type: "+String:C10($type)+", value: "+String:C10($value)+" "+$data)
 
 Case of 
 	: (String:C10($userdata.job)="hide")  // generic hide job
