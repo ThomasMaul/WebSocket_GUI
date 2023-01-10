@@ -39,4 +39,11 @@ Case of
 	: ($type=gui.controlTypes.S_VALUE)  // select
 		// accept any entry and send to all other clients
 		gui.updateSelect($control; $value; -$clientID)
+		
+	: (String:C10($userdata.job)="cleargraph")
+		gui.clearGraph(thegraph)
 End case 
+
+If (Num:C11(gui.window)#0)
+	CALL FORM:C1391(gui.window; Formula:C1597(mycallback_window).source; gui; $control; $type; $value; $clientID; $userdata)
+End if 

@@ -4,6 +4,8 @@ Class to build web/mobile interface with Web Socket
 ## Fork from 
 [ESPUI](https://github.com/s00500/ESPUI)
 ported to 4D code. Needing 4D v20 or newer.
+Many thanks to [Lukas Bachschwell/s00500](https://github.com/s00500) for this great library!
+
 
 version status/based on Nov 24,2022, commit 5cf0c36
 

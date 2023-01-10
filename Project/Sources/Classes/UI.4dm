@@ -32,7 +32,7 @@ Function begin($title : Text)
 	End if 
 	
 Function end()
-	This:C1470.ws.terminate()
+	This:C1470.ws.terminate(2)
 	
 	
 Function onWSEvent($WS : Object; $client : Object; $event : Text; $arg : Object)->$ID : Integer
@@ -228,7 +228,7 @@ Function updateControlValue($thecontrol : Variant; $value : Text; $clientId : In
 	var $controlid : Integer
 	
 	Case of 
-		: (Value type:C1509($thecontrol)=Is longint:K8:6)
+		: ((Value type:C1509($thecontrol)=Is longint:K8:6) | (Value type:C1509($thecontrol)=Is real:K8:4))
 			$controlid:=$thecontrol
 			$control:=This:C1470.getControl($controlid)
 		: (Value type:C1509($thecontrol)=Is object:K8:27)
@@ -286,7 +286,7 @@ Function updateTime($id : Integer; $clientid : Integer)
 	This:C1470.updateControl($id; $clientid)
 	
 Function clearGraph($id : Integer; $clientid : Integer)
-	$control:=This:C1470.getControl($controlid)
+	$control:=This:C1470.getControl($id)
 	
 	If (($control=Null:C1517) | (This:C1470.ws=Null:C1517))
 		return 
@@ -331,8 +331,15 @@ Function SendJsonDocToWebSocket($root : Object; $clientid : Integer)->$response 
 Function jsonDom($startidx : Integer; $client : Object)
 	This:C1470.NotifyClients(This:C1470.controlTypes.RebuildNeeded)
 	
-	
-	
+Function FindControlByUserData($name : Text; $value : Text)->$result : Collection
+	// not included in ESPUI class
+	//$result:=This.controls.filter(Formula(String($1.value.user[$2])=$3; $name; $value))
+	$result:=New collection:C1472
+	For each ($control; This:C1470.controls)
+		If (($control.user#Null:C1517) && (String:C10($control.user[$name])=$value))
+			$result.push($control)
+		End if 
+	End for each 
 	
 Function Constants()->$ControlTypes
 	$ControlTypes:=New object:C1471

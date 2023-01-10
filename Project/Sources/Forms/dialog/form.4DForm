@@ -1,0 +1,148 @@
+{
+	"$4d": {
+		"version": "1",
+		"kind": "form"
+	},
+	"windowSizingX": "variable",
+	"windowSizingY": "variable",
+	"windowMinWidth": 0,
+	"windowMinHeight": 0,
+	"windowMaxWidth": 32767,
+	"windowMaxHeight": 32767,
+	"rightMargin": 20,
+	"bottomMargin": 20,
+	"events": [
+		"onLoad",
+		"onPageChange",
+		"onValidate",
+		"onClick",
+		"onDoubleClick",
+		"onOutsideCall",
+		"onBeginDragOver",
+		"onDragOver",
+		"onDrop",
+		"onAfterKeystroke",
+		"onMenuSelect",
+		"onPluginArea",
+		"onAfterEdit",
+		"onTimer",
+		"onBoundVariableChange"
+	],
+	"windowTitle": "window title",
+	"destination": "detailScreen",
+	"pages": [
+		{
+			"objects": {}
+		},
+		{
+			"objects": {
+				"Text": {
+					"type": "text",
+					"text": "4D example to show (some) options used in web interface.\rOpen in parallel one or more browser windows to 127.0.0.1",
+					"top": 18,
+					"left": 56,
+					"width": 491,
+					"height": 46
+				},
+				"Ankreuzfeld": {
+					"type": "checkbox",
+					"text": "Switch",
+					"top": 105,
+					"left": 55,
+					"width": 141,
+					"height": 31,
+					"events": [
+						"onClick"
+					],
+					"dataSource": "Form:C1466.switch",
+					"method": "ObjectMethods/Ankreuzfeld.4dm"
+				},
+				"Text1": {
+					"type": "text",
+					"text": "Number",
+					"top": 145,
+					"left": 55,
+					"width": 70,
+					"height": 16
+				},
+				"Eingabe": {
+					"type": "input",
+					"left": 138,
+					"top": 145,
+					"width": 96,
+					"height": 17,
+					"dataSourceTypeHint": "integer",
+					"min": 1,
+					"max": 100,
+					"dataSource": "Form:C1466.number",
+					"events": [
+						"onDataChange"
+					],
+					"method": "ObjectMethods/Eingabe.4dm"
+				},
+				"Text2": {
+					"type": "text",
+					"text": "Text",
+					"top": 181,
+					"left": 56,
+					"width": 75,
+					"height": 16
+				},
+				"Eingabe1": {
+					"type": "input",
+					"left": 139,
+					"top": 181,
+					"width": 266,
+					"height": 17,
+					"dataSourceTypeHint": "text",
+					"min": "",
+					"max": "",
+					"dataSource": "Form:C1466.text",
+					"method": "ObjectMethods/Eingabe1.4dm",
+					"events": [
+						"onDataChange"
+					]
+				},
+				"Lineal": {
+					"type": "ruler",
+					"left": 53,
+					"top": 221,
+					"width": 346,
+					"height": 70,
+					"max": 100,
+					"events": [
+						"onDataChange"
+					],
+					"dataSource": "Form:C1466.slider",
+					"showGraduations": true,
+					"labelsPlacement": "bottom",
+					"graduationStep": 10,
+					"method": "ObjectMethods/Lineal.4dm"
+				},
+				"Stepper": {
+					"type": "stepper",
+					"left": 247,
+					"top": 136,
+					"width": 22,
+					"height": 33,
+					"max": 100,
+					"events": [
+						"onDataChange"
+					],
+					"dataSource": "Form:C1466.number",
+					"min": 1,
+					"method": "ObjectMethods/Stepper.4dm"
+				}
+			}
+		}
+	],
+	"geometryStamp": 30,
+	"editor": {
+		"activeView": "View 1",
+		"defaultView": "View 1",
+		"views": {
+			"View 1": {}
+		}
+	},
+	"method": "method.4dm"
+}
